@@ -1,10 +1,10 @@
 using LinearAlgebra
 using DataFrames
 """
-        griddata with linear interpolation which works similar to its matlab counterpart
+    griddata with linear interpolation which works similar to its matlab counterpart
 
-        `griddata(x::Array{Real, 1}, y::Array{Real, 1}, v::Array{Real, 1}, xq::Array{Real, 1}, yq::Array{Real, 1})`
-        """
+    `griddata(x::Array{Real, 1}, y::Array{Real, 1}, v::Array{Real, 1}, xq::Array{Real, 1}, yq::Array{Real, 1})`
+"""
 function griddata(x, y, v,
                   xq, yq)
     if !(length(x) == length(y) && length(y) == length(v))
