@@ -33,9 +33,15 @@ function griddata(x, y, v,
         # then find the z value of f(xq[i], yq[i])
         D = det(vertices)
         d = 1
-        a = -d/D * det(hcat([1,1,1], vertices[:, 2:3]))
-        b = -d/D * det(hcat(vertices[:, 1], [1,1,1], vertices[:, 3]))
-        c = -d/D * det(hcat(vertices[:, 2:3], [1,1,1]))
+        a = -d/D * det(
+            hcat([1,1,1], vertices[:, 2:3])
+        )
+        b = -d/D * det(
+            hcat(vertices[:, 1], [1,1,1], vertices[:, 3])
+        )
+        c = -d/D * det(
+            hcat(vertices[:, 1:2], [1,1,1])
+        )
         vq = (a*xq[i] + b*yq[i] + d) / -c
         append!(res, vq)
     end
