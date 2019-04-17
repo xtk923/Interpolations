@@ -2,10 +2,11 @@ using LinearAlgebra
 using VoronoiDelaunay
 
 
-x = -3 .+ 6 .* rand(50000);
-y = -3 .+ 6 .* rand(50000);
+x = -3 .+ 6 .* rand(50);
+y = -3 .+ 6 .* rand(50);
 v = sin.(x).^4 .* cos.(y);
-xq = 1;yq = 2
+xq = [-3 .+ rand() .* 6 for i = 1:10]
+yq = [-3 .+ rand() .* 6 for i = 1:10]
 
 max = max_coord
 min = min_coord

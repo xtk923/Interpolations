@@ -1,13 +1,15 @@
+module Interpolations_MAT
 using LinearAlgebra
 using DataFrames
 using VoronoiDelaunay
 using GeometricalPredicates
 
+export griddata
 """
-    griddata with linear interpolation which works similar to its matlab counterpart
+        griddata with linear interpolation which works similar to its matlab counterpart
 
-    `griddata(x::Array{Real, 1}, y::Array{Real, 1}, v::Array{Real, 1}, xq::Array{Real, 1}, yq::Array{Real, 1})`
-"""
+        `griddata(x::Array{Real, 1}, y::Array{Real, 1}, v::Array{Real, 1}, xq::Array{Real, 1}, yq::Array{Real, 1})`
+    """
 function griddata(x::Array, y::Array, v::Array,
                   xq, yq)
     if !(length(x) == length(y) && length(y) == length(v))
@@ -88,7 +90,7 @@ function griddata(x::Array, y::Array, v::Array,
                 append!(res, NaN)
             end
         else
-                append!(res, NaN)
+            append!(res, NaN)
         end
     end
 
@@ -97,7 +99,7 @@ function griddata(x::Array, y::Array, v::Array,
 end
 
 """
-    calculate the area of a triangle from its three vertices
+        calculate the area of a triangle from its three vertices
 """
 function areaTriangle(t::GeometricalPredicates.UnOrientedTriangle{Point2D})
     area = abs(1/2 * (
@@ -110,8 +112,8 @@ end
 
 
 """
-    check if a point is within a triangle
-"""
+        check if a point is within a triangle
+    """
 function isInTriangle(p::Point2D,
                       t::GeometricalPredicates.UnOrientedTriangle{Point2D})
     TA = Primitive(p, getb(t), getc(t))
@@ -131,9 +133,9 @@ end
 
 
 """
-    Scale and shift an array of data to fit within
-    the interval defined by `min` and `max`
-"""
+        Scale and shift an array of data to fit within
+        the interval defined by `min` and `max`
+    """
 function normalizedToInterval(x::Array, min::Real, max::Real)
     width = max - min
     dataMax = maximum(x)
@@ -147,13 +149,15 @@ end
 
 
 """
-    reverse the array of data according to `scale` and `shift`
-"""
+        reverse the array of data according to `scale` and `shift`
+    """
 function reverseNormalizedToInterval(x::Array, scale::Real, shift::Real)
 
     res = x .+ shift
     res .*= scale
 
     return res
+
+end
 
 end
