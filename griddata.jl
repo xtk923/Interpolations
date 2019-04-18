@@ -18,7 +18,7 @@ function griddata(x::Array, y::Array, v::Array, xq, yq)
         error("xq and yq must be in same dimension.")
     end
 
-    points = [x y]
+    points = [Float64.(x) Float64.(y)]
     points_map = collect(1:length(x))
 
     triangles = Triangle.basic_triangulation(points, points_map)
