@@ -1,9 +1,7 @@
-module Interpolations_MAT
 using LinearAlgebra
 using VoronoiDelaunay
 using GeometricalPredicates
 
-export griddata
 """
         griddata with linear interpolation which works similar to its matlab counterpart
 
@@ -24,8 +22,6 @@ function griddata(x::Array, y::Array, v::Array,
                                                 VoronoiDelaunay.max_coord)
 
     tess = DelaunayTessellation(2*length(x))
-    # points3D = Point.(newX, newY, newV)
-    # points = map(p->Point2D(getx(p), gety(p)), points3D)
     points = Point.(newX, newY)
     push!(tess, points)
     dict = Dict(zip(points, collect(1:length(x))))
@@ -34,8 +30,6 @@ function griddata(x::Array, y::Array, v::Array,
         normalizedX = xq[i] / xScale - xShift
         normalizedY = yq[i] / yScale - yShift
         p = Point2D(normalizedX, normalizedY)
-        println("pause")
-        readline()
         theTriangle = locate(tess, p)
         if !isexternal(theTriangle)
             vertices = Array{Float64, 2}(undef, 3,3)
@@ -85,6 +79,4 @@ function normalizedToInterval(x::Array, min::Real, max::Real)
     shift = minimum(res) - min
     res .-= shift
     return res, scale, shift
-end
-
 end
