@@ -7,13 +7,10 @@ using Triangle
 
         `griddata(x::Array{Real, 1}, y::Array{Real, 1}, v::Array{Real, 1}, xq::Array{Real, 1}, yq::Array{Real, 1})`
 """
-function griddata(x::Array, y::Array, v::Array,
-                  xq, yq)
+function griddata(x::Array, y::Array, v::Array, xq, yq)
 
     # check at most three points aroud the quest point for triangle
-    k = 4
-
-
+    k = 1
     if !(length(x) == length(y) && length(y) == length(v))
         error("x, y and v must be in same dimension.")
     end
@@ -24,17 +21,16 @@ function griddata(x::Array, y::Array, v::Array,
     points = [x y]
     points_map = collect(1:length(x))
 
-    dists = Array{Float64, 1}(undef, length(x))
-    df = DataFrame(idx = points_map, X = x, Y = y, V = v, Dist = dists)
     triangles = Triangle.basic_triangulation(points, points_map)
     res = Array{Float64, 1}(undef, length(xq))
+    dists = Array{Float64, 1}(undef, length(x))
+    df = DataFrame(idx = points_map, X = x, Y = y, V = v, Dist = dists)
     for i = 1:length(xq)
-        p = [xq[i], yq[i]]
+        p = [xq[i]  yq[i]]
         # get the distances
         for i = 1:length(dists)
             dists[i] = ((p[1] - points[i, 1])^2 + (p[2] - points[i, 2])^2)^0.5
         end
- 
         df.Dist = dists
         sort!(df, :Dist)
         neighbours = df.idx[1:k]
@@ -42,7 +38,7 @@ function griddata(x::Array, y::Array, v::Array,
         for i = 1:k
             candidates = vcat(candidates, filter(x-> neighbours[i] in x, triangles))
         end
-
+        df = sort(df, :idx)
         theTriangle = locate(candidates, p, df)
         if theTriangle != nothing
             vertices = Array{Float64, 2}(undef, 3,3)
@@ -53,7 +49,6 @@ function griddata(x::Array, y::Array, v::Array,
             vertices[1,:] = [x[idxA], y[idxA], v[idxA]]
             vertices[2,:] = [x[idxB], y[idxB], v[idxB]]
             vertices[3,:] = [x[idxC], y[idxC], v[idxC]]
-
             # with three nearest points, get the expression of the plane,
             # then find the z value of f(xq[i], yq[i])
             D = det(vertices)
@@ -80,16 +75,16 @@ function griddata(x::Array, y::Array, v::Array,
 end
 
 
-function locate(candidates::Array{Any, 1}, p::Array, df::DataFrame)
+function areaTriangle(p1::Array, p2::Array, p3::Array)
+    area = abs(1/2 * (
+        p1[1] * (p2[2] - p3[2]) +
+        p2[1] * (p3[2] - p1[2]) +
+        p3[1] * (p1[2] - p2[2])
+    ))
 
-    for t in candidates
-        if inTriangle(p, t, df)
-            return t
-        end
-    end
-
-    return nothing
+    return area
 end
+
 
 function inTriangle(p::Array, t::Array{Int64, 1}, df::DataFrame)
     pA = convert(Matrix, filter(row->row[:idx] == t[1], df)[[:X, :Y]])
@@ -103,13 +98,15 @@ function inTriangle(p::Array, t::Array{Int64, 1}, df::DataFrame)
     return areaOriginal ≈ areaA + areaB + areaC
 end
 
+function locate(candidates::Array{Any, 1}, p::Array, df::DataFrame)
 
-function areaTriangle(p1::Array, p2::Array, p3::Array)
-    area = abs(1/2 * (
-        p1[1] * (p2[2] - p3[2]) +
-        p2[1] * (p3[2] - p1[2]) +
-        p3[1] * (p1[2] - p2[2])
-    ))
+    for t in candidates
+        if inTriangle(p, t, df)
+            return t
+        end
+    end
 
-    return area
+    return nothing
 end
+
+
