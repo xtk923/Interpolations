@@ -1,6 +1,5 @@
 module Interpolations_MAT
 using LinearAlgebra
-using DataFrames
 using VoronoiDelaunay
 using GeometricalPredicates
 
@@ -27,26 +26,13 @@ function griddata(x::Array, y::Array, v::Array,
     tess = DelaunayTessellation(2*length(x))
     points = Point.(newX, newY)
     push!(tess, points)
-    # tess is a Delaunay Trianglation
-    triangles = []
-    for t in tess
-        push!(triangles, Primitive(geta(t), getb(t), getc(t)))
-    end
-
     res = []
     for i = 1:length(xq)
         normalizedX = xq[i] / xScale - xShift
         normalizedY = yq[i] / yScale - yShift
         p = Point2D(normalizedX, normalizedY)
-        theTriangle = nothing
-        for t in triangles
-            if isInTriangle(p, t)
-                theTriangle = t
-                break
-            end
-        end
-
-        if theTriangle != nothing
+        theTriangle = locate(tess, p)
+        if !isexternal(theTriangle)
             skipping = false
             vertices = Array{Float64, 2}(undef, 3,3)
             vertices[1,1] = getx(geta(theTriangle))
