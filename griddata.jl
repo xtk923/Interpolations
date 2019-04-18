@@ -22,9 +22,6 @@ function griddata(x::Array, y::Array, v::Array,
                                                 VoronoiDelaunay.max_coord)
     newY, yScale, yShift = normalizedToInterval(y, VoronoiDelaunay.min_coord,
                                                 VoronoiDelaunay.max_coord)
-    newV, vScale, vShift = normalizedToInterval(v, VoronoiDelaunay.min_coord,
-                                                VoronoiDelaunay.max_coord)
-
 
     tess = DelaunayTessellation(2*length(x))
     # points3D = Point.(newX, newY, newV)
@@ -32,11 +29,13 @@ function griddata(x::Array, y::Array, v::Array,
     points = Point.(newX, newY)
     push!(tess, points)
     dict = Dict(zip(points, collect(1:length(x))))
-    res = []
+    res = Array{Float64, 1}(undef, length(xq))
     for i = 1:length(xq)
         normalizedX = xq[i] / xScale - xShift
         normalizedY = yq[i] / yScale - yShift
         p = Point2D(normalizedX, normalizedY)
+        println("pause")
+        readline()
         theTriangle = locate(tess, p)
         if !isexternal(theTriangle)
             vertices = Array{Float64, 2}(undef, 3,3)
@@ -63,9 +62,9 @@ function griddata(x::Array, y::Array, v::Array,
                 hcat(vertices[:, 1:2], [1,1,1])
             )
             vq = (a*xq[i] + b*yq[i] + d) / -c
-            append!(res, vq)
+            res[i] = vq
         else
-            append!(res, NaN)
+            res[i] = NaN
         end
     end
 
