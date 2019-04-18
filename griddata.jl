@@ -9,7 +9,7 @@ export griddata
         griddata with linear interpolation which works similar to its matlab counterpart
 
         `griddata(x::Array{Real, 1}, y::Array{Real, 1}, v::Array{Real, 1}, xq::Array{Real, 1}, yq::Array{Real, 1})`
-    """
+"""
 function griddata(x::Array, y::Array, v::Array,
                   xq, yq)
     if !(length(x) == length(y) && length(y) == length(v))
@@ -23,9 +23,13 @@ function griddata(x::Array, y::Array, v::Array,
                                                 VoronoiDelaunay.max_coord)
     newY, yScale, yShift = normalizedToInterval(y, VoronoiDelaunay.min_coord,
                                                 VoronoiDelaunay.max_coord)
+    newV, vScale, vShift = normalizedToInterval(v, VoronoiDelaunay.min_coord,
+                                                VoronoiDelaunay.max_coord)
+
 
     tess = DelaunayTessellation(2*length(x))
-    points = Point.(newX, newY)
+    points3D = Point.(newX, newY, newV)
+    points = map(p->Point2D(getx(p), gety(p)), points3D)
     push!(tess, points)
     res = []
     df = DataFrame(X = x, Y = y, V = v)
@@ -36,18 +40,27 @@ function griddata(x::Array, y::Array, v::Array,
         theTriangle = locate(tess, p)
         if !isexternal(theTriangle)
             vertices = Array{Float64, 2}(undef, 3,3)
-            vertices[1,1] = getx(geta(theTriangle))
-            vertices[2,1] = getx(getb(theTriangle))
-            vertices[3,1] = getx(getc(theTriangle))
-            vertices[1,2] = gety(geta(theTriangle))
-            vertices[2,2] = gety(getb(theTriangle))
-            vertices[3,2] = gety(getc(theTriangle))
-            vertices[:,1] = reverseNormalizedToInterval(vertices[:,1], xScale, xShift)
-            vertices[:,2] = reverseNormalizedToInterval(vertices[:,2], yScale, yShift)
+            # index of vertice A in `points`
+            idxA = indexin([geta(theTriangle)], points)
+            idxB = indexin([getb(theTriangle)], points)
+            idxC = indexin([getc(theTriangle)], points)
 
-            for r = 1:3
-                vertices[r, 3] = filter(row->row[:X] ≈ vertices[r,1] && row[:Y] ≈ vertices[r,2], df).V[1]
-            end
+            vertices[1,:] = [getx(points3D[idxA][1]),
+                             gety(points3D[idxA][1]),
+                             getz(points3D[idxA][1])]
+            vertices[2,:] = [getx(points3D[idxB][1]),
+                             gety(points3D[idxB][1]),
+                             getz(points3D[idxB][1])]
+            vertices[3,:] = [getx(points3D[idxC][1]),
+                             gety(points3D[idxC][1]),
+                             getz(points3D[idxC][1])]
+            vertices[:,1] = reverseNormalizedToInterval(vertices[:,1], xScale,
+                                                        xShift)
+            vertices[:,2] = reverseNormalizedToInterval(vertices[:,2], yScale,
+                                                        yShift)
+            vertices[:,3] = reverseNormalizedToInterval(vertices[:,3], vScale,
+                                                        vShift)
+
 
             # with three nearest points, get the expression of the plane,
             # then find the z value of f(xq[i], yq[i])
@@ -75,43 +88,9 @@ function griddata(x::Array, y::Array, v::Array,
 end
 
 """
-        calculate the area of a triangle from its three vertices
-"""
-function areaTriangle(t::GeometricalPredicates.UnOrientedTriangle{Point2D})
-    area = abs(1/2 * (
-        getx(geta(t)) * (gety(getb(t)) - gety(getc(t))) +
-        getx(getb(t)) * (gety(getc(t)) - gety(geta(t))) +
-        getx(getc(t)) * (gety(geta(t)) - gety(getb(t)))
-    ))
-    return area
-end
-
-
-"""
-        check if a point is within a triangle
-    """
-function isInTriangle(p::Point2D,
-                      t::GeometricalPredicates.UnOrientedTriangle{Point2D})
-    TA = Primitive(p, getb(t), getc(t))
-
-    TB = Primitive(p, geta(t), getc(t))
-
-    TC = Primitive(p, geta(t), getb(t))
-
-    AreaA = areaTriangle(TA)
-    AreaB = areaTriangle(TB)
-    AreaC = areaTriangle(TC)
-
-    AreaOrigin = areaTriangle(t)
-
-    return AreaOrigin ≈ AreaA + AreaB + AreaC
-end
-
-
-"""
         Scale and shift an array of data to fit within
         the interval defined by `min` and `max`
-    """
+"""
 function normalizedToInterval(x::Array, min::Real, max::Real)
     width = max - min
     dataMax = maximum(x)
@@ -126,7 +105,7 @@ end
 
 """
         reverse the array of data according to `scale` and `shift`
-    """
+"""
 function reverseNormalizedToInterval(x::Array, scale::Real, shift::Real)
 
     res = x .+ shift
