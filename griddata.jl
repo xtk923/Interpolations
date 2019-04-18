@@ -1,6 +1,7 @@
 module Interpolations_MAT
 using LinearAlgebra
 using VoronoiDelaunay
+using DataFrames
 using GeometricalPredicates
 
 export griddata
@@ -27,13 +28,13 @@ function griddata(x::Array, y::Array, v::Array,
     points = Point.(newX, newY)
     push!(tess, points)
     res = []
+    df = DataFrame(X = x, Y = y, V = v)
     for i = 1:length(xq)
         normalizedX = xq[i] / xScale - xShift
         normalizedY = yq[i] / yScale - yShift
         p = Point2D(normalizedX, normalizedY)
         theTriangle = locate(tess, p)
         if !isexternal(theTriangle)
-            skipping = false
             vertices = Array{Float64, 2}(undef, 3,3)
             vertices[1,1] = getx(geta(theTriangle))
             vertices[2,1] = getx(getb(theTriangle))
@@ -45,36 +46,25 @@ function griddata(x::Array, y::Array, v::Array,
             vertices[:,2] = reverseNormalizedToInterval(vertices[:,2], yScale, yShift)
 
             for r = 1:3
-                idxAccX = findall(x .≈ vertices[r, 1])
-                idxAccY = findall(y .≈ vertices[r, 2]) 
-                idxForZ = intersect(idxAccX, idxAccY)
-                if length(idxForZ) == 1
-                    vertices[r, 3] = v[idxAccX[1]]
-                else
-                    skipping = true
-                end
+                vertices[r, 3] = filter(row->row[:X] ≈ vertices[r,1] && row[:Y] ≈ vertices[r,2], df).V[1]
             end
 
-            if !skipping
-                # with three nearest points, get the expression of the plane,
-                # then find the z value of f(xq[i], yq[i])
-                D = det(vertices)
-                D = D == 0 ? eps() : D
-                d = 1
-                a = -d/D * det(
-                    hcat([1,1,1], vertices[:, 2:3])
-                )
-                b = -d/D * det(
-                    hcat(vertices[:, 1], [1,1,1], vertices[:, 3])
-                )
-                c = -d/D * det(
-                    hcat(vertices[:, 1:2], [1,1,1])
-                )
-                vq = (a*xq[i] + b*yq[i] + d) / -c
-                append!(res, vq)
-            else
-                append!(res, NaN)
-            end
+            # with three nearest points, get the expression of the plane,
+            # then find the z value of f(xq[i], yq[i])
+            D = det(vertices)
+            D = D == 0 ? eps() : D
+            d = 1
+            a = -d/D * det(
+                hcat([1,1,1], vertices[:, 2:3])
+            )
+            b = -d/D * det(
+                hcat(vertices[:, 1], [1,1,1], vertices[:, 3])
+            )
+            c = -d/D * det(
+                hcat(vertices[:, 1:2], [1,1,1])
+            )
+            vq = (a*xq[i] + b*yq[i] + d) / -c
+            append!(res, vq)
         else
             append!(res, NaN)
         end
