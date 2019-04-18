@@ -1,7 +1,6 @@
 module Interpolations_MAT
 using LinearAlgebra
 using VoronoiDelaunay
-using DataFrames
 using GeometricalPredicates
 
 export griddata
@@ -28,11 +27,12 @@ function griddata(x::Array, y::Array, v::Array,
 
 
     tess = DelaunayTessellation(2*length(x))
-    points3D = Point.(newX, newY, newV)
-    points = map(p->Point2D(getx(p), gety(p)), points3D)
+    # points3D = Point.(newX, newY, newV)
+    # points = map(p->Point2D(getx(p), gety(p)), points3D)
+    points = Point.(newX, newY)
     push!(tess, points)
+    dict = Dict(zip(points, collect(1:length(x))))
     res = []
-    df = DataFrame(X = x, Y = y, V = v)
     for i = 1:length(xq)
         normalizedX = xq[i] / xScale - xShift
         normalizedY = yq[i] / yScale - yShift
@@ -41,26 +41,12 @@ function griddata(x::Array, y::Array, v::Array,
         if !isexternal(theTriangle)
             vertices = Array{Float64, 2}(undef, 3,3)
             # index of vertice A in `points`
-            idxA = indexin([geta(theTriangle)], points)
-            idxB = indexin([getb(theTriangle)], points)
-            idxC = indexin([getc(theTriangle)], points)
-
-            vertices[1,:] = [getx(points3D[idxA][1]),
-                             gety(points3D[idxA][1]),
-                             getz(points3D[idxA][1])]
-            vertices[2,:] = [getx(points3D[idxB][1]),
-                             gety(points3D[idxB][1]),
-                             getz(points3D[idxB][1])]
-            vertices[3,:] = [getx(points3D[idxC][1]),
-                             gety(points3D[idxC][1]),
-                             getz(points3D[idxC][1])]
-            vertices[:,1] = reverseNormalizedToInterval(vertices[:,1], xScale,
-                                                        xShift)
-            vertices[:,2] = reverseNormalizedToInterval(vertices[:,2], yScale,
-                                                        yShift)
-            vertices[:,3] = reverseNormalizedToInterval(vertices[:,3], vScale,
-                                                        vShift)
-
+            idxA = dict[geta(theTriangle)]
+            idxB = dict[getb(theTriangle)]
+            idxC = dict[getc(theTriangle)]
+            vertices[1,:] = [x[idxA], y[idxA], v[idxA]]
+            vertices[2,:] = [x[idxB], y[idxB], v[idxB]]
+            vertices[3,:] = [x[idxC], y[idxC], v[idxC]]
 
             # with three nearest points, get the expression of the plane,
             # then find the z value of f(xq[i], yq[i])
@@ -100,19 +86,6 @@ function normalizedToInterval(x::Array, min::Real, max::Real)
     shift = minimum(res) - min
     res .-= shift
     return res, scale, shift
-end
-
-
-"""
-        reverse the array of data according to `scale` and `shift`
-"""
-function reverseNormalizedToInterval(x::Array, scale::Real, shift::Real)
-
-    res = x .+ shift
-    res .*= scale
-
-    return res
-
 end
 
 end
