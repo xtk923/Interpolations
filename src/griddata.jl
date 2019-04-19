@@ -1,6 +1,7 @@
 using LinearAlgebra
 using DataFrames
 using Triangle
+using ProgressMeter
 
 """
         griddata with linear interpolation which works similar to its matlab counterpart
@@ -23,7 +24,7 @@ function griddata(x::Array, y::Array, v::Array, xq, yq)
     res = Array{Float64, 1}(undef, length(xq))
     dists = Array{Float64, 1}(undef, length(x))
     df = DataFrame(idx = points_map, X = x, Y = y, V = v, Dist = dists)
-    for i = 1:length(xq)
+    @showprogress 1 for i = 1:length(xq)
         p = [xq[i]  yq[i]]
         # get the distances
         for i = 1:length(dists)
