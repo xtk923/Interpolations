@@ -9,8 +9,6 @@ using Triangle
 """
 function griddata(x::Array, y::Array, v::Array, xq, yq)
 
-    # check at most three points aroud the quest point for triangle
-    k = 1
     if !(length(x) == length(y) && length(y) == length(v))
         error("x, y and v must be in same dimension.")
     end
@@ -18,10 +16,10 @@ function griddata(x::Array, y::Array, v::Array, xq, yq)
         error("xq and yq must be in same dimension.")
     end
 
-    points = [Float64.(x) Float64.(y)]
+    points = [Float64.(x) Float64.(y) Float64.(v)]
     points_map = collect(1:length(x))
 
-    triangles = Triangle.basic_triangulation(points, points_map)
+    triangles = Triangle.basic_triangulation(points[:, 1:2], points_map)
     res = Array{Float64, 1}(undef, length(xq))
     dists = Array{Float64, 1}(undef, length(x))
     df = DataFrame(idx = points_map, X = x, Y = y, V = v, Dist = dists)
@@ -33,11 +31,9 @@ function griddata(x::Array, y::Array, v::Array, xq, yq)
         end
         df.Dist = dists
         sort!(df, :Dist)
-        neighbours = df.idx[1:k]
+        neighbours = df.idx[1]
         candidates = []
-        for i = 1:k
-            candidates = vcat(candidates, filter(x-> neighbours[i] in x, triangles))
-        end
+        candidates = filter(t-> neighbours in t, triangles)
         df = sort(df, :idx)
         theTriangle = locate(candidates, p, df)
         if theTriangle != nothing
@@ -46,9 +42,9 @@ function griddata(x::Array, y::Array, v::Array, xq, yq)
             idxA = theTriangle[1]
             idxB = theTriangle[2]
             idxC = theTriangle[3]
-            vertices[1,:] = [x[idxA], y[idxA], v[idxA]]
-            vertices[2,:] = [x[idxB], y[idxB], v[idxB]]
-            vertices[3,:] = [x[idxC], y[idxC], v[idxC]]
+            vertices[1,:] = [points[idxA, 1], points[idxA, 2], points[idxA, 3]]
+            vertices[2,:] = [points[idxB, 1], points[idxB, 2], points[idxB, 3]]
+            vertices[3,:] = [points[idxC, 1], points[idxC, 2], points[idxC, 3]]
             # with three nearest points, get the expression of the plane,
             # then find the z value of f(xq[i], yq[i])
             D = det(vertices)
@@ -98,7 +94,7 @@ function inTriangle(p::Array, t::Array{Int64, 1}, df::DataFrame)
     return areaOriginal ≈ areaA + areaB + areaC
 end
 
-function locate(candidates::Array{Any, 1}, p::Array, df::DataFrame)
+function locate(candidates::Array{Array{Int64, 1}, 1}, p::Array, df::DataFrame)
 
     for t in candidates
         if inTriangle(p, t, df)
