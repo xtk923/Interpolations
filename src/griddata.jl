@@ -30,11 +30,14 @@ function griddata(x::Array, y::Array, v::Array, xq, yq)
             dists[i] = ((p[1] - points[i, 1])^2 + (p[2] - points[i, 2])^2)^0.5
         end
         df.Dist = dists
-        sort!(df, :Dist)
-        neighbours = df.idx[1]
+        # @time sort!(df, :Dist);
+        filter(row->row[:Dist] < 2, df)
+        neighbours = filter(row->row[:Dist] < 2, df).idx
         candidates = []
-        candidates = filter(t-> neighbours in t, triangles)
-        df = sort(df, :idx)
+        for i = 1:length(neighbours)
+            candidates = vcat(candidates, filter(t-> neighbours[i] in t, triangles))
+        end
+        # @time df = sort(df, :idx);
         theTriangle = locate(candidates, p, df)
         if theTriangle != nothing
             vertices = Array{Float64, 2}(undef, 3,3)
@@ -94,7 +97,7 @@ function inTriangle(p::Array, t::Array{Int64, 1}, df::DataFrame)
     return areaOriginal ≈ areaA + areaB + areaC
 end
 
-function locate(candidates::Array{Array{Int64, 1}, 1}, p::Array, df::DataFrame)
+function locate(candidates::Array, p::Array, df::DataFrame)
 
     for t in candidates
         if inTriangle(p, t, df)
