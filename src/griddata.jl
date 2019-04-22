@@ -31,12 +31,18 @@ function griddata(x::Array, y::Array, v::Array, xq, yq)
             dists[i] = ((p[1] - points[i, 1])^2 + (p[2] - points[i, 2])^2)^0.5
         end
         df.Dist = dists
-        neighbours = filter(row->row[:Dist] < 2, df).idx
+        radius = minimum(dists)
+        neighbours = []
+        while isempty(neighbours)
+            neighbours = filter(row->row[:Dist] <= radius, df).idx
+            radius *= 1.1
+        end
         candidates = []
-        for i = 1:length(neighbours)
-            candidates = vcat(candidates, filter(t-> neighbours[i] in t, triangles))
+        for neigh in neighbours
+            candidates = vcat(candidates, filter(t->neigh in t, triangles))
         end
         theTriangle = locate(candidates, p, df)
+        # this step is not the bottle neck
         if theTriangle != nothing
             vertices = Array{Float64, 2}(undef, 3,3)
             # index of vertice A in `points`
@@ -84,9 +90,9 @@ end
 
 
 function inTriangle(p::Array, t::Array{Int64, 1}, df::DataFrame)
-    pA = convert(Matrix, filter(row->row[:idx] == t[1], df)[[:X, :Y]])
-    pB = convert(Matrix, filter(row->row[:idx] == t[2], df)[[:X, :Y]])
-    pC = convert(Matrix, filter(row->row[:idx] == t[3], df)[[:X, :Y]])
+    pA = [df[t[1], 2], df[t[1], 3]]
+    pB = [df[t[2], 2], df[t[2], 3]]
+    pC = [df[t[3], 2], df[t[3], 3]]
 
     areaA = areaTriangle(p, pB, pC)
     areaB = areaTriangle(p, pA, pC)
