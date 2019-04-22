@@ -31,14 +31,11 @@ function griddata(x::Array, y::Array, v::Array, xq, yq)
             dists[i] = ((p[1] - points[i, 1])^2 + (p[2] - points[i, 2])^2)^0.5
         end
         df.Dist = dists
-        # @time sort!(df, :Dist);
-        filter(row->row[:Dist] < 2, df)
         neighbours = filter(row->row[:Dist] < 2, df).idx
         candidates = []
         for i = 1:length(neighbours)
             candidates = vcat(candidates, filter(t-> neighbours[i] in t, triangles))
         end
-        # @time df = sort(df, :idx);
         theTriangle = locate(candidates, p, df)
         if theTriangle != nothing
             vertices = Array{Float64, 2}(undef, 3,3)
